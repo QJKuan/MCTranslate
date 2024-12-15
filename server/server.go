@@ -62,7 +62,10 @@ func ParseLine(line string) *NeedTrans {
 func DeepLTranslate(res []NeedTrans) {
 	urlPre := "https://www.deepl.com/zh/translator#en/zh-hans/"
 	var urls []string
-	for _, re := range res {
+	// 存储未翻译的索引以及字符
+	noTrans := make(map[int]string)
+
+	for i, re := range res {
 		var url string
 		// 转换标点 因为存在标点符号会让标签变更导致拿不到翻译
 		if strings.Contains(re.Val, ". ") {
@@ -77,12 +80,17 @@ func DeepLTranslate(res []NeedTrans) {
 		if strings.Contains(re.Val, "%") {
 			re.Val = strings.ReplaceAll(re.Val, "%", "%25")
 		}
-		/*if strings.Contains(re.Val, "<br>") {
-			re.Val = strings.ReplaceAll(re.Val, "<br>", "")
-		}*/
+		//TODO 无法直接翻译带 <br> 的字符
+		if strings.Contains(re.Val, "<br>") {
+			noTrans[i] = re.Val
+			urls = append(urls, "")
+			continue
+		}
+
 		url = urlPre + re.Val
 		urls = append(urls, url)
 	}
+	// 获取翻译结果集
 	results := getNet.TranslateDeepL(urls)
 
 	/*for _, url := range urls {
@@ -91,11 +99,20 @@ func DeepLTranslate(res []NeedTrans) {
 	}*/
 	for i, result := range results {
 		if result.Err != nil {
-			WriteTranslate(res[i].Key + "此行报错！！！！！！！！！！！！！！！！！！！！！")
+			WriteTranslate(res[i].Key + "此行报错！！！！！！！！！！！！！！！！！！！！！: " + result.Err.Error())
 			continue
 		}
+		if result.Translate == "" {
+			if ele, exist := noTrans[result.Index]; exist {
+				result.Translate = ele
+			}
+		}
 		WriteTranslate(res[i].Key + result.Translate)
-		fmt.Println(res[i].Key + result.Translate)
+		//fmt.Println(res[i].Key + result.Translate)
+		for index, ele := range noTrans {
+			fmt.Printf("第 %v 行出现存在 <br> 需要手动翻译 原文为： %v \n", index, ele)
+			WriteTranslate(res[i].Key + result.Translate)
+		}
 	}
 }
 
@@ -119,7 +136,8 @@ func YoudaoTranslate(res []NeedTrans) {
 
 // WriteTranslate 输出到 zh_CN.lang 文件中
 func WriteTranslate(text string) {
-	out, err := os.Create("./File/zh_CN.lang")
+	//out, err := os.Create("./File/zh_CN.lang")
+	out, err := os.OpenFile("./File/zh_CN.lang", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Printf("创建输出文件异常: %v\n", err)
 		return

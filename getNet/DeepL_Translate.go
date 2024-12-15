@@ -6,7 +6,7 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
-// 存储结果
+// Trans 存储结果
 type Trans struct {
 	Index     int
 	Translate string
@@ -21,18 +21,6 @@ func TranslateDeepL(urls []string) []Trans {
 	// 记录开始时间
 	//startTime := time.Now().Unix()
 
-	// 定义要访问的URL列表
-	/*	urls := []string{
-		"https://www.deepl.com/zh/translator#en/zh-hans/Construct of Terror",
-		"https://www.deepl.com/zh/translator#en/zh-hans/DeathRay Shot",
-		"https://www.deepl.com/zh/translator#en/zh-hans/Dungeon Keeper",
-		"https://www.deepl.com/zh/translator#en/zh-hans/Explosives Expert",
-		"https://www.deepl.com/zh/translator#en/zh-hans/Non-Lethal Attacks Create Lightning on Impact",
-		"https://www.deepl.com/zh/translator#en/zh-hans/Launches The Holder in The Direction They're Facing",
-		"https://www.deepl.com/zh/translator#en/zh-hans/Only those who are real artists can wear this armor.",
-		"https://www.deepl.com/zh/translator#en/zh-hans/Dungeon Keeper say You will get a return crystal upon entry This crystal will let you end your run at any time.",
-	}*/
-
 	// 定义要获取文本的节点信息
 	nodeInfo := "/html[1]/body[1]/div[1]/div[1]/div[1]/div[3]/div[2]/div[1]/div[2]/div[1]/main[1]/div[2]/nav[1]/div[1]/div[2]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/section[1]/div[1]/div[2]/div[3]/section[1]/div[1]/d-textarea[1]/div[1]/p[1]/span[1]"
 
@@ -41,6 +29,14 @@ func TranslateDeepL(urls []string) []Trans {
 	for i, url := range urls {
 		var res Trans
 		res.Index = i
+
+		//TODO 处理现阶段无法翻译的字符
+		if url == "" {
+			// 判空返回
+			res.Translate = ""
+			results = append(results, res)
+			continue
+		}
 		err := chromedp.Run(ctx,
 			chromedp.Navigate(url),
 			chromedp.Text(nodeInfo, &res.Translate, chromedp.BySearch),
